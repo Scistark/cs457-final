@@ -104,7 +104,7 @@ Sent after every good move so both players see the same board.
   "msg_type": "STATE_UPDATE",
   "player_id": "SERVER",
   "payload": {
-    "board": [[0,0,0,0,0,0,0], ...],   // 6x7 int array
+    "board": [[0,0,0,0,0,0,0], ...],   //int array
     "last_move": {
       "player_id": "Alice",            // string
       "row": 5,                        // int
@@ -196,4 +196,18 @@ this would be one message as it ends in \n
 2. if the buffer detects a /n it will turn that portion into a json object
 3. leftover the leftovers wait in the buffer until another /n comes through signaling that the whole json object has been recived
 
+## Connection Termination
+### Graceful disconnect
+- Client sends DISCONNECT before leaving. If a game is in progress, the other player wins.
+- TCP FIN: client closes normally, so recv() gets 0 bytes (EOF). Server checks if not data and treats it as a disconnect. Without this check the loop runs forever.
 
+### Abrupt disconnect
+- client crashes or the network drops, so there's no clean close.
+- Server catches these errors so it doesn't crash:
+  - ConnectionResetError: client died
+  - BrokenPipeError: tried to send to a closed client
+
+### What the server does For any disconnect
+- Other player wins (if mid-game)
+- Close the socket
+- Reset and wait for new players
